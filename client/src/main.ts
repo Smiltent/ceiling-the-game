@@ -9,9 +9,6 @@ k.loadRoot("./") // itch.io publishing
 k.loadSprite("ceiling", "sprites/ceiling.png")
 k.setGravity(1000)
 
-
-
-
 // CONFIG
 const MAX_SPEED = 420
 const ACCEL = 1600
@@ -22,9 +19,12 @@ const JUMP_FORCE = 1000
 const MAX_UP_VEL = 650
 const WEIGHT_PULL = 28
 const ANG_DAMP = 10
+const FALLBACK_REST_ANGL = -10.54
 
 let bottom = { mass: 0, comX: 0, comY: 0 }
 let baseHull: [number, number][] = []
+let restAngle = FALLBACK_REST_ANGL
+let visLeft = 0 
 let angVel = 0
 let facing = 1
 
@@ -32,13 +32,21 @@ let flipping = false
 let flipTravel = 0
 
 const player = k.add([
-    k.sprite("ceiling"),
     k.pos(120, 80),
     k.anchor("center"),
     k.rotate(0),
-    k.area(),
+    k.area({
+        shape: new k.Rect(k.vec2(-64, -40), 128, 80)
+    }),
     k.body(),
     "player"
+])
+
+const vis = player.add([
+    k.sprite("ceiling"),
+    k.anchor("center"),
+    k.pos(0, 0),
+    k.rotate(0)
 ])
 
 k.add([
@@ -51,8 +59,14 @@ k.add([
 ])
 
 let appliedFace = 0
+function posVis(face: number) {
+    vis.flipX = face === -1
+    vis.angle = restAngle * face
+    vis.pos = k.vec2(0, visLeft)
+}
+
 function applyFace(face: number) {
-    player.flipX = face === -1
+    posVis(face)
 
     if (baseHull.length < 3) return
     if (face === appliedFace) return
@@ -65,16 +79,32 @@ function applyFace(face: number) {
 
 k.onLoad(async () => {
     const src = "./sprites/ceiling.png"
-    const hull = await opaqueHull(src)
+    const { hull, nat, restAngle: sit } = await opaqueHull(src)
     bottom = await opaqueBtmWeight(src)
 
-    const halfW = player.width / 2
-    const halfH = player.height / 2
+    restAngle = sit === 0 ? FALLBACK_REST_ANGL : sit
+
+    const halfW = vis.width / 2
+    const halfH = vis.height / 2
 
     baseHull = hull.map(([x, y]) => [x - halfW, y - halfH])
 
+    let unrotMaxY = -Infinity
+    let rotMaxY = -Infinity
+    for (const [x, y] of nat) {
+        const lx = x - halfW
+        const ly = y - halfH
+        if (ly > unrotMaxY) unrotMaxY = ly
+
+        const r = (restAngle * Math.PI) / 180
+        const ry = lx * Math.sin(r) + ly * Math.cos(r)
+        if (ry > rotMaxY) rotMaxY = ry
+    }
+    visLeft = unrotMaxY - rotMaxY
+
     appliedFace = 0
     applyFace(facing)
+    player.angle = 0
 })
 
 

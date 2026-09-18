@@ -19,10 +19,19 @@ export default async function opaqueHull(src: string, alphaTresh: number = 10, f
     const { data, width, height } = ctx.getImageData(0, 0, img.width, img.height)
     const alphaAt = (x: number, y: number) => data[(y * width + x) * 4 + 3]
     const edge: [number, number][] = []
+    
+    let mass = 0
+    let sumX = 0
+    let sumY = 0
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             if (alphaAt(x, y) <= alphaTresh) continue
+
+            mass++
+            sumX += x
+            sumY += y
+
             for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
                 const nx = x + dx
                 const ny = y + dy
@@ -33,6 +42,13 @@ export default async function opaqueHull(src: string, alphaTresh: number = 10, f
             }
         }
     }
+
+    const nat = convexHull(edge)
+    const restAngle = supportingRestAngle(
+        nat,
+        mass > 0 ? sumX / mass : width / 2,
+        mass > 0 ? sumY / mass : height / 2,
+    )
 
     const bottoms = new Array<number>(width).fill(-1)
     for (let x = 0; x < width; x++) {
@@ -75,7 +91,7 @@ export default async function opaqueHull(src: string, alphaTresh: number = 10, f
     })
 
     filtered.push([bx0, floorY], [bx1, floorY])
-    return convexHull(filtered)
+    return { hull: convexHull(filtered), nat, restAngle}
 }
 
 function convexHull(points: [number, number][]): [number, number][] {
@@ -109,4 +125,46 @@ function convexHull(points: [number, number][]): [number, number][] {
     }
 
     return [...lower.slice(0, -1), ...upper.slice(0, -1)] as [number, number][]
+}
+
+function supportingRestAngle(hull: [number, number][], comX: number, comY: number) {
+    let bestAngle = 0
+    let bestAbs = Infinity
+
+    for (let i = 0; i < hull.length; i++) {
+        const a = hull[i]
+        const b = hull[(i + 1) % hull.length]
+
+        const dx = b[0] - a[0]
+        const dy = b[1] - a[1]
+
+        const len = Math.hypot(dx, dy)
+        if (len < 8) continue
+
+        const ox = comX - a[0]
+        const oy = comY - a[1]
+
+        const t = (ox * dx + oy * dy) / (len * len)
+        if (t < 0 || t > 1) continue
+
+        let theta = -Math.atan2(dy, dx)
+        let ry = ox * Math.sin(theta) + oy * Math.cos(theta)
+        if (ry > 0) {
+            theta += Math.PI
+            ry = -ry
+        }
+
+        if (ry >= 0) continue
+
+        let angle = (theta * 180) / Math.PI
+        while (angle > 180) angle -= 360
+        while (angle < -180) angle += 360
+
+        if (Math.abs(angle) < bestAbs) {
+            bestAbs = Math.abs(angle)
+            bestAngle = angle
+        }
+    }
+
+    return bestAngle
 }
