@@ -10,16 +10,22 @@ k.loadSprite("ceiling", "sprites/ceiling.png")
 k.setGravity(1000)
 
 // CONFIG
-const MAX_SPEED = 420
-const ACCEL = 1600
-const FRICTION = 1400
-const AIR_ACCEL = 1400
-const FLIP_SPIN = 780
-const JUMP_FORCE = 1000
+const MAX_SPEED = 500
+const ACCEL = 1500
+const FRICTION = 1200
+const AIR_ACCEL = 1800
+const FLIP_SPIN = 820
+const JUMP_FORCE = 1200
 const MAX_UP_VEL = 650
 const WEIGHT_PULL = 28
 const ANG_DAMP = 10
 const FALLBACK_REST_ANGL = -10.54
+
+
+const MOVE_LEAN = 16
+const FALL_LEAN = 22
+const LEAN_RATE = 22
+const FALL_LEAN_RATE = 3.5
 
 let bottom = { mass: 0, comX: 0, comY: 0 }
 let baseHull: [number, number][] = []
@@ -27,6 +33,9 @@ let restAngle = FALLBACK_REST_ANGL
 let visLeft = 0 
 let angVel = 0
 let facing = 1
+
+let silLocal: [number, number][] = []
+let lean = 0
 
 let flipping = false
 let flipTravel = 0
@@ -58,13 +67,28 @@ k.add([
     "platform"
 ])
 
-let appliedFace = 0
-function posVis(face: number) {
-    vis.flipX = face === -1
-    vis.angle = restAngle * face
-    vis.pos = k.vec2(0, visLeft)
+function tilt(deg: number) {
+    if (silLocal.length === 0) return visLeft
+
+    let unrotMaxY = -Infinity
+    let rotMaxY = -Infinity
+    for (const [lx, ly] of silLocal) {
+        if (ly > unrotMaxY) unrotMaxY = ly
+
+        const r = (restAngle * Math.PI) / 180
+        const ry = lx * Math.sin(r) + ly * Math.cos(r)
+        if (ry > rotMaxY) rotMaxY = ry
+    }
+    return unrotMaxY - rotMaxY
 }
 
+function posVis(face: number) {
+    vis.flipX = face === -1
+    vis.angle = (restAngle + lean) * face
+    vis.pos = k.vec2(0, tilt(restAngle + lean))
+}
+
+let appliedFace = 0
 function applyFace(face: number) {
     posVis(face)
 
@@ -88,28 +112,14 @@ k.onLoad(async () => {
     const halfH = vis.height / 2
 
     baseHull = hull.map(([x, y]) => [x - halfW, y - halfH])
-
-    let unrotMaxY = -Infinity
-    let rotMaxY = -Infinity
-    for (const [x, y] of nat) {
-        const lx = x - halfW
-        const ly = y - halfH
-        if (ly > unrotMaxY) unrotMaxY = ly
-
-        const r = (restAngle * Math.PI) / 180
-        const ry = lx * Math.sin(r) + ly * Math.cos(r)
-        if (ry > rotMaxY) rotMaxY = ry
-    }
-    visLeft = unrotMaxY - rotMaxY
+    silLocal = nat.map(([x, y]) => [x - halfW, y - halfH])
+    visLeft = tilt(restAngle)
+    lean = 0
 
     appliedFace = 0
     applyFace(facing)
     player.angle = 0
 })
-
-
-
-
 
 k.onUpdate(() => {
     const dt = k.dt()
@@ -176,15 +186,26 @@ k.onUpdate(() => {
             applyFace(facing)
         }
     } else {
-        // const leanTarg = dir !== 0 && dir === facing ? Math.max(-MAX_TILT, Math.min(MAX_TILT, dir * MOVE_LEAN)) : 0
-        // const t = Math.min(1, LEAN_RATE * dt)
-
-        // player.angle += (leanTarg - player.angle) * t
-        // angVel = 0
-        // applyFace(facing)
-
         player.angle = 0
         angVel = 0
+
+        let leanTarg = 0
+        let leanRate = LEAN_RATE
+        if (!player.isGrounded()) {
+            if (player.vel.y > 0) {
+                leanTarg = FALL_LEAN
+                leanRate = FALL_LEAN_RATE
+            } else {
+                leanTarg = lean
+                leanRate = 0
+            }
+        } else if (dir !== 0 && dir === facing) {
+            leanTarg = MOVE_LEAN
+        }
+
+        const t = Math.min(1, leanRate * dt)
+        lean += (leanTarg - lean) * t
+
         applyFace(facing)
     } 
 })
