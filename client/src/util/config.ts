@@ -60,6 +60,5 @@ export const HAND_SWING_DRIVE = 0.3
 
 
 // wall jumping
-export const WALL_JUMP_UP = 370
-// export const WALL_JUMP_PUSH = 320
-export const WALL_JUMP_PUSH = 100000
+export const WALL_JUMP_UP = 300
+export const WALL_JUMP_PUSH = 320
