@@ -6,6 +6,7 @@ import {
     MOVE_LEAN 
 } from "../util/config" // holy imports
 
+import { createHands, updateHands } from "../util/player/hand"
 import opaqueBtmWeight from "../util/opaqueBtmWeight"
 import applyFace from "../util/player/applyFace"
 import { isOutBounds } from "../util/bounds"
@@ -75,12 +76,14 @@ export function createPlayer(
         k.rotate(0)
     ])
 
+    const { front, back, state: handState } = createHands(k, player, vis)
+
     function face() {
         applyFace(k, player, vis, state.facing, state)
     }
 
     k.onLoad(async () => {
-        const src = "./sprites/ceiling.png"
+        const src = "./sprites/ceiling/ceiling.png"
         const { hull, nat, restAngle: sit } = await opaqueHull(src)
 
         state.bottom = await opaqueBtmWeight(src)
@@ -200,6 +203,8 @@ export function createPlayer(
             player.angle = state.lean * state.facing
             face()
         } 
+
+        updateHands(k, front, back, handState, player.angle, dt, state.facing, vis)
     })
 
     return { player, vis, state }

@@ -47,3 +47,12 @@ export const BORDER_GRACE = 150
 export const DEAD_CAM_SCALE = 0.9
 export const DEAD_CAM_TIME = 0.5
 export const DEATH_FRAME = 96
+
+
+
+// ceiling floppy hand
+export const HAND_TACK_X = 10
+export const HAND_TACK_Y = 20
+export const HAND_SWING_STIFF = 28
+export const HAND_SWING_DAMP = 10
+export const HAND_SWING_DRIVE = 0.2

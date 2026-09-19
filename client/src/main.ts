@@ -15,7 +15,11 @@ const k = kaplay({
 })
 
 k.loadRoot("./") // itch.io publishing
-k.loadSprite("ceiling", "sprites/ceiling.png")
+
+k.loadSprite("ceiling", "sprites/ceiling/ceiling.png")
+k.loadSprite("ceiling-hand-1", "sprites/ceiling/hand/1.png")
+k.loadSprite("ceiling-hand-2", "sprites/ceiling/hand/2.png")
+
 k.setGravity(850)
 
 k.add([
