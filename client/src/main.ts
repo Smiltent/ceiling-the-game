@@ -1,12 +1,14 @@
-
 import { WIDTH, HEIGHT, DEAD_CAM_SCALE, DEAD_CAM_TIME } from "./util/config"
+import { joinGame, NetPlayer, watchPlayers } from "./net/colyseus"
 import { loadVig } from "./util/shaders/vignette"
 import { createPlayer } from "./player/create"
 import addDeathFrame from "./util/deathFrame"
 import { loadLobby } from "./scenes/lobby"
-import { joinGame, NetPlayer, watchPlayers } from "./net/colyseus"
-import kaplay from "kaplay"
 import { Callbacks } from "@colyseus/sdk"
+import kaplay from "kaplay"
+import die from "./util/player/die"
+
+const INTERP = 18
 
 const k = kaplay({
     width: WIDTH,
@@ -17,7 +19,7 @@ const k = kaplay({
     crisp: true
 })
 
-k.loadRoot("./") // itch.io publishing
+k.loadRoot("./")
 
 loadVig(k)
 
@@ -41,7 +43,6 @@ k.add([
 ])
 
 loadLobby(k)
-// loadSnowy1(k)
 const deathBars: ReturnType<typeof k.add>[] = []
 
 let camScale = 1
@@ -50,6 +51,14 @@ let zooming = false
 
 function easeOutCubic(t: number) {
     return 1 - Math.pow(1 - t, 3)
+}
+
+function triggerLocalDeathFx() {
+    zooming = true
+    zoomT = 0
+    camScale = 1
+    k.setCamScale(1)
+    addDeathFrame(k, deathBars)
 }
 
 k.onUpdate(() => {
@@ -70,21 +79,20 @@ type Puppet = {
     state: ReturnType<typeof createPlayer>["state"]
     applyTint: ReturnType<typeof createPlayer>["applyTint"]
     face: ReturnType<typeof createPlayer>["face"]
+    target: {
+        x: number
+        y: number
+        angle: number
+    }
     destroy: () => void
 }
 
 const remotes = new Map<string, Puppet>()
 const local = createPlayer(k, {
-    onDeath: () => {
-        zooming = true
-        zoomT = 0
-        camScale = 1
-        k.setCamScale(1)
-        addDeathFrame(k, deathBars)
-    }
+    onDeath: triggerLocalDeathFx
 })
 
-function spawnRemote(sessionId: string, net: NetPlayer) {
+function spawnRemote(net: NetPlayer) {
     const remote = createPlayer(k, {
         remote: true,
         pos: { x: net.x, y: net.y },
@@ -96,51 +104,72 @@ function spawnRemote(sessionId: string, net: NetPlayer) {
     remote.player.angle = net.angle
     remote.face()
 
-    remotes.set(sessionId, {
+    return {
         player: remote.player,
         state: remote.state,
         applyTint: remote.applyTint,
         face: remote.face,
+        target: { x: net.x, y: net.y, angle: net.angle },
         destroy: () => remote.player.destroy()
-    })
+    } satisfies Puppet
 }
+
+k.onUpdate(() => {
+    const dt = k.dt()
+    const t = Math.min(1, INTERP * dt)
+    for (const r of remotes.values()) {
+        if (r.state.dead) continue
+        r.player.pos.x += (r.target.x - r.player.pos.x) * t
+        r.player.pos.y += (r.target.y - r.player.pos.y) * t
+        r.player.angle += (r.target.angle - r.player.angle) * t
+    }
+})
 
 joinGame()
     .then((room) => {
         watchPlayers(room, {
             onAdd: (net, sessionId) => {
+                const callbacks = Callbacks.get(room)
                 const tint = k.rgb(net.tintR, net.tintG, net.tintB)
+
                 if (sessionId === room.sessionId) {
                     local.applyTint(tint)
+
+                    callbacks.listen(net, "dead", (dead) => {
+                        if (!dead || local.state.dead) return
+                        die(k, local.player, local.state, triggerLocalDeathFx, { vanish: true })
+                    })
                     return
                 }
-                
-                spawnRemote(sessionId, net)
 
-                const callbacks = Callbacks.get(room)
+                const puppet = spawnRemote(net)
+                remotes.set(sessionId, puppet)
+
                 callbacks.listen(net, "x", (x) => {
                     const r = remotes.get(sessionId)
-                    if (r) r.player.pos.x = x
+                    if (r) r.target.x = x
                 })
-                
                 callbacks.listen(net, "y", (y) => {
                     const r = remotes.get(sessionId)
-                    if (r) r.player.pos.y = y
+                    if (r) r.target.y = y
                 })
-
                 callbacks.listen(net, "angle", (angle) => {
                     const r = remotes.get(sessionId)
-                    if (r) r.player.angle = angle
+                    if (r) r.target.angle = angle
                 })
-
                 callbacks.listen(net, "facing", (facing) => {
                     const r = remotes.get(sessionId)
                     if (!r) return
                     r.state.facing = facing < 0 ? -1 : 1
                     r.face()
                 })
+                callbacks.listen(net, "dead", (dead) => {
+                    const r = remotes.get(sessionId)
+                    if (!r || !dead || r.state.dead) return
+                    die(k, r.player, r.state, undefined, { vanish: true })
+                })
             },
-            onRemove: (net, sessionId) => {
+            onRemove: (_net, sessionId) => {
                 remotes.get(sessionId)?.destroy()
                 remotes.delete(sessionId)
             }
@@ -157,5 +186,5 @@ joinGame()
         })
     })
     .catch((err) => {
-        console.error("failed to join")
+        console.error("failed to join", err)
     })

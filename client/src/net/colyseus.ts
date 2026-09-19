@@ -6,10 +6,14 @@ export type NetPlayer = {
     tintG: number
     tintB: number
     tintAlpha: number
+
     x: number
     y: number
     angle: number
     facing: number
+
+    dead: boolean
+    hp: number
 }
 
 export type GameState = {
@@ -23,7 +27,7 @@ export function getRoom() {
 
 export async function joinGame() {
     const client = new Client("http://localhost:2567")
-    room = await client.joinOrCreate<GameState>("my_room") // change
+    room = await client.joinOrCreate<GameState>("my_room")
 
     return room
 }

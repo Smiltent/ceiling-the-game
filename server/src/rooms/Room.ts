@@ -2,6 +2,14 @@
 import { MyRoomState, Player } from "./schema/State.js"
 import { Room, Client, CloseCode } from "colyseus"
 
+const WIDTH = 1920
+const HEIGHT = 1080
+const BORDER_GRACE = 150
+
+function isOutBounds(x: number, y: number) {
+	return x < -BORDER_GRACE || y < -BORDER_GRACE || x > WIDTH + BORDER_GRACE || y > HEIGHT + BORDER_GRACE
+}
+
 function randomTint() {
 	const hue = Math.random() * 360
 	const sat = 0.25 + Math.random() * 0.2
@@ -43,12 +51,17 @@ export class MyRoom extends Room<{ state: MyRoomState }> {
     messages = {
 		move: (client: Client, message: { x: number; y: number; angle: number; facing: number}) => {
 			const p = this.state.players.get(client.sessionId)
-			if (!p) return
+			if (!p || p.dead) return
 
 			p.x = message.x
 			p.y = message.y
 			p.angle = message.angle
 			p.facing = message.facing < 0 ? -1 : 1
+
+			if (isOutBounds(p.x, p.y)) {
+				p.dead = true
+				p.hp = 0
+			}
 		}
     };
 

@@ -1,4 +1,3 @@
-
 import { 
     FALLBACK_REST_ANGL, MAX_SPEED, WIDTH, MAX_UP_VEL, 
     FLIP_SPIN, FRICTION, ACCEL, AIR_ACCEL, WEIGHT_PULL, 
@@ -6,12 +5,11 @@ import {
     MOVE_LEAN, MAX_HP,
     WALL_JUMP_UP,
     WALL_JUMP_PUSH
-} from "../util/config" // holy imports
+} from "../util/config"
 
 import { createHands, updateHands } from "../util/player/hand"
 import opaqueBtmWeight from "../util/opaqueBtmWeight"
 import applyFace from "../util/player/applyFace"
-import { isOutBounds } from "../util/bounds"
 import opaqueHull from "../util/opaqueHull"
 import tilt from "../util/player/tilt"
 import { Color, KAPLAYCtx } from "kaplay"
@@ -116,16 +114,12 @@ export function createPlayer(
 
         if (remote) {
             updateHands(k, front, back, handState, player.angle, dt, state.facing, vis)
+            return
         }
 
         if (state.dead) return
         if (state.hp <= 0) {
             die(k, player, state, options?.onDeath)
-            return
-        }
-
-        if (isOutBounds(k, player.pos)) {
-            die(k, player, state, options?.onDeath, { vanish: true})
             return
         }
 
@@ -144,7 +138,7 @@ export function createPlayer(
                 let wall = 0
 
                 for (const col of player.getCollisions()) {
-                    if (!col.target.is("platform") && !col.target.is("box")) continue
+                    if (!col.target.is("platform") && !col.target.is("box") && !col.target.is("player")) continue
                     if (col.isLeft()) wall = -1
                     if (col.isRight()) wall = 1
                 }
@@ -162,7 +156,6 @@ export function createPlayer(
             player.vel.y = -MAX_UP_VEL
         }
 
-        // turnaround -> hop + spin
         if (!state.flipping && dir !== 0 && dir !== state.facing) {
             state.flipping = true
             state.facing = dir
@@ -178,7 +171,6 @@ export function createPlayer(
             state.flipTravel = Math.max(0, 180 - state.flipTravel)
         }
 
-        // horizontal
         {
             const want = dir !== 0 && dir === state.facing ? dir * MAX_SPEED : 0
             const rate = player.isGrounded() ? want === 0 ? FRICTION : ACCEL : AIR_ACCEL
@@ -187,7 +179,6 @@ export function createPlayer(
             player.vel.x = vx + Math.sign(want - vx) * Math.min(Math.abs(want - vx), rate * dt)
         }
 
-        // finish flip
         if (state.flipping) {
             const step = state.angVel * dt
             player.angle += step
