@@ -50,7 +50,7 @@ export const DEATH_FRAME = 96
 
 
 
-// ceiling floppy hand
+// ceiling floppy hand(s)
 export const HAND_TACK_X = 10
 export const HAND_TACK_Y = 20
 export const HAND_SWING_STIFF = 18
