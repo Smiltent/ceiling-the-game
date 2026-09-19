@@ -3,7 +3,9 @@ import {
     FALLBACK_REST_ANGL, MAX_SPEED, WIDTH, MAX_UP_VEL, 
     FLIP_SPIN, FRICTION, ACCEL, AIR_ACCEL, WEIGHT_PULL, 
     ANG_DAMP, LEAN_RATE, FALL_LEAN, FALL_LEAN_RATE, 
-    MOVE_LEAN, MAX_HP
+    MOVE_LEAN, MAX_HP,
+    WALL_JUMP_UP,
+    WALL_JUMP_PUSH
 } from "../util/config" // holy imports
 
 import { createHands, updateHands } from "../util/player/hand"
@@ -121,11 +123,28 @@ export function createPlayer(
 
         if (input.left) dir -= 1
         if (input.right) dir += 1
-        if (input.up && player.isGrounded() && !state.flipping) {
-            const keepX = player.vel.x
+        if (input.up && !state.flipping) {
+            if (player.isGrounded()) {
+                const keepX = player.vel.x
 
-            player.jump()
-            player.vel.x = keepX
+                player.jump()
+                player.vel.x = keepX
+            } else {
+                let wall = 0
+
+                for (const col of player.getCollisions()) {
+                    if (!col.target.is("platform")) continue
+                    if (col.isLeft()) wall = -1
+                    if (col.isRight()) wall = 1
+                }
+
+                if (wall !== 0) {
+                    player.vel.y = -WALL_JUMP_UP
+                    player.vel.x = -wall * WALL_JUMP_PUSH
+                    state.facing = -wall
+                    face()
+                }
+            }
         }
 
         if (player.vel.y < -MAX_UP_VEL) {

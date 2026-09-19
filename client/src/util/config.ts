@@ -56,3 +56,10 @@ export const HAND_TACK_Y = 20
 export const HAND_SWING_STIFF = 18
 export const HAND_SWING_DAMP = 8
 export const HAND_SWING_DRIVE = 0.3
+
+
+
+// wall jumping
+export const WALL_JUMP_UP = 370
+// export const WALL_JUMP_PUSH = 320
+export const WALL_JUMP_PUSH = 100000
