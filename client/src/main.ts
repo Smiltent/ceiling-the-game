@@ -5,6 +5,7 @@ import { createPlayer } from "./player/create"
 import addDeathFrame from "./util/deathFrame"
 import { loadSnowy1 } from "./scenes/snowy/1"
 import kaplay from "kaplay"
+import { loadLobby } from "./scenes/lobby"
 
 const k = kaplay({
     width: WIDTH,
@@ -38,8 +39,8 @@ k.add([
     "playfield"
 ])
 
-// loadLobby(k)
-loadSnowy1(k)
+loadLobby(k)
+// loadSnowy1(k)
 const deathBars: ReturnType<typeof k.add>[] = []
 
 let camScale = 1
