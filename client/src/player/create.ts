@@ -103,8 +103,13 @@ export function createPlayer(
         const dt = k.dt()
 
         if (state.dead) return
-        if (isOutBounds(k, player.pos)) {
+        if (state.hp <= 0) {
             die(k, player, state, options?.onDeath)
+            return
+        }
+
+        if (isOutBounds(k, player.pos)) {
+            die(k, player, state, options?.onDeath, { vanish: true})
             return
         }
 

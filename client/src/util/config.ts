@@ -43,7 +43,7 @@ export const MAX_HP = 100
 
 
 // border
-export const BORDER_GRACE = 72
+export const BORDER_GRACE = 150
 export const DEAD_CAM_SCALE = 0.9
 export const DEAD_CAM_TIME = 0.5
 export const DEATH_FRAME = 96

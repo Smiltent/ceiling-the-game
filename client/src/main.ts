@@ -1,9 +1,9 @@
 
-import { WIDTH, HEIGHT } from "./util/config"
+import { createPlayer } from "./player/create"
+import { WIDTH, HEIGHT, DEAD_CAM_SCALE, DEAD_CAM_TIME } from "./util/config"
+import addDeathFrame from "./util/deathFrame"
 import { addBounds } from "./util/bounds"
 import kaplay from "kaplay"
-import { createPlayer } from "./player/create"
-import addDeathFrame from "./util/deathFrame"
 
 const k = kaplay({
     width: WIDTH,
@@ -38,8 +38,34 @@ k.add([
 const deathBars: ReturnType<typeof k.add>[] = []
 addBounds(k)
 
+
+let camScale = 1
+let zoomT = 0
+let zooming = false
+
+function easeOutCubic(t: number) {
+    return 1 - Math.pow(1 - t, 3)
+}
+
+k.onUpdate(() => {
+    if (!zooming) return
+    const dt = k.dt()
+
+    zoomT = Math.min(1, zoomT + dt / DEAD_CAM_TIME)
+    const t = easeOutCubic(zoomT)
+
+    camScale = 1 + (DEAD_CAM_SCALE - 1) * t
+
+    k.setCamScale(camScale)
+    if (zoomT >= 1) zooming = false
+})
+
 createPlayer(k, {
     onDeath: () => {
+        zooming = true
+        zoomT = 0
+        camScale = 1
+
         k.setCamScale(1)
         addDeathFrame(k, deathBars)
     }
