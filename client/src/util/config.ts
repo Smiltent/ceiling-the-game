@@ -53,6 +53,6 @@ export const DEATH_FRAME = 96
 // ceiling floppy hand
 export const HAND_TACK_X = 10
 export const HAND_TACK_Y = 20
-export const HAND_SWING_STIFF = 28
-export const HAND_SWING_DAMP = 10
-export const HAND_SWING_DRIVE = 0.2
+export const HAND_SWING_STIFF = 18
+export const HAND_SWING_DAMP = 8
+export const HAND_SWING_DRIVE = 0.3
