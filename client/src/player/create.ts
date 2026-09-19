@@ -67,10 +67,6 @@ export function createPlayer(
         "player"
     ])
 
-        let camScale = 1
-    let zoomT = 0
-    let zooming = false
-
     const vis = player.add([
         k.sprite("ceiling"),
         k.anchor("center"),
@@ -133,7 +129,7 @@ export function createPlayer(
                 let wall = 0
 
                 for (const col of player.getCollisions()) {
-                    if (!col.target.is("platform")) continue
+                    if (!col.target.is("platform") && !col.target.is("box")) continue
                     if (col.isLeft()) wall = -1
                     if (col.isRight()) wall = 1
                 }

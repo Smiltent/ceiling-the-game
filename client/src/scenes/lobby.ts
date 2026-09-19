@@ -1,5 +1,5 @@
 
-import { AIR as _, SOLID as a, loadScene, SceneDef } from "../util/scenes/blocks"
+import { AIR as _, SOLID_YELLOW as a, loadScene, SceneDef } from "../util/scenes/blocks"
 import { HEIGHT, WIDTH } from "../util/config"
 import { KAPLAYCtx } from "kaplay"
 

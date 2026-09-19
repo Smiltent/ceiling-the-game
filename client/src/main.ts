@@ -1,8 +1,9 @@
 
 import { WIDTH, HEIGHT, DEAD_CAM_SCALE, DEAD_CAM_TIME } from "./util/config"
+import { loadVig } from "./util/shaders/vignette"
 import { createPlayer } from "./player/create"
 import addDeathFrame from "./util/deathFrame"
-import { loadLobby } from "./scenes/lobby"
+import { loadSnowy1 } from "./scenes/snowy/1"
 import kaplay from "kaplay"
 
 const k = kaplay({
@@ -16,9 +17,16 @@ const k = kaplay({
 
 k.loadRoot("./") // itch.io publishing
 
+loadVig(k)
+
 k.loadSprite("ceiling", "sprites/ceiling/ceiling.png")
 k.loadSprite("ceiling-hand-1", "sprites/ceiling/hand/1.png")
 k.loadSprite("ceiling-hand-2", "sprites/ceiling/hand/2.png")
+
+k.loadSprite("box", "sprites/tiles/box.png")
+
+k.loadSprite("snowy", "sprites/tiles/snowy/snowy.png")
+k.loadSprite("snowy-fg", "sprites/tiles/snowy/snowy-fg.png")
 
 k.setGravity(850)
 
@@ -30,7 +38,8 @@ k.add([
     "playfield"
 ])
 
-loadLobby(k)
+// loadLobby(k)
+loadSnowy1(k)
 const deathBars: ReturnType<typeof k.add>[] = []
 
 let camScale = 1

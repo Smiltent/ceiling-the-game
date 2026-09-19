@@ -19,7 +19,7 @@ export const MAX_UP_VEL = 650
 
 
 // turn around spin
-export const FLIP_SPIN = 520
+export const FLIP_SPIN = 800
 
 
 
