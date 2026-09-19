@@ -3,7 +3,7 @@ import {
     FALLBACK_REST_ANGL, MAX_SPEED, WIDTH, MAX_UP_VEL, 
     FLIP_SPIN, FRICTION, ACCEL, AIR_ACCEL, WEIGHT_PULL, 
     ANG_DAMP, LEAN_RATE, FALL_LEAN, FALL_LEAN_RATE, 
-    MOVE_LEAN 
+    MOVE_LEAN, MAX_HP
 } from "../util/config" // holy imports
 
 import { createHands, updateHands } from "../util/player/hand"
@@ -50,7 +50,7 @@ export function createPlayer(
         flipping: false,
         flipTravel: 0,
 
-        hp: MAX_SPEED,
+        hp: MAX_HP,
         dead: false,
     }
 
