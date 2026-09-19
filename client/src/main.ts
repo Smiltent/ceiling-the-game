@@ -1,8 +1,8 @@
 
-import { createPlayer } from "./player/create"
 import { WIDTH, HEIGHT, DEAD_CAM_SCALE, DEAD_CAM_TIME } from "./util/config"
+import { createPlayer } from "./player/create"
 import addDeathFrame from "./util/deathFrame"
-import { addBounds } from "./util/bounds"
+import { loadLobby } from "./scenes/lobby"
 import kaplay from "kaplay"
 
 const k = kaplay({
@@ -30,18 +30,8 @@ k.add([
     "playfield"
 ])
 
-k.add([
-    k.rect(k.width(), 48),
-    k.pos(0, k.height() - 48),
-    k.color(k.Color.BLACK),
-    k.area(),
-    k.body({ isStatic: true }),
-    "platform"
-])
-
+loadLobby(k)
 const deathBars: ReturnType<typeof k.add>[] = []
-addBounds(k)
-
 
 let camScale = 1
 let zoomT = 0
