@@ -14,7 +14,7 @@ import applyFace from "../util/player/applyFace"
 import { isOutBounds } from "../util/bounds"
 import opaqueHull from "../util/opaqueHull"
 import tilt from "../util/player/tilt"
-import { KAPLAYCtx } from "kaplay"
+import { Color, KAPLAYCtx } from "kaplay"
 import die from "../util/player/die"
 
 type PlayerInput = {
@@ -29,8 +29,10 @@ export function createPlayer(
         pos?: { x: number; y: number }
         getInput?: () => PlayerInput
         onDeath?: () => void
+        remote?: boolean
     }
 ) {
+    const remote = options?.remote ?? false
     const getInput = options?.getInput ?? (() => ({
         left: k.isKeyDown("left"),
         right: k.isKeyDown("right"),
@@ -49,6 +51,7 @@ export function createPlayer(
 
         silLocal: [] as [number, number][],
         lean: 0,
+
         flipping: false,
         flipTravel: 0,
 
@@ -63,18 +66,26 @@ export function createPlayer(
         k.area({
             shape: new k.Rect(k.vec2(-64, -40), 128, 80)
         }),
-        k.body(),
-        "player"
+        k.body({ isStatic: remote }),
+        "player",
+        remote ? "remote-player" : "local-player"
     ])
 
     const vis = player.add([
         k.sprite("ceiling"),
         k.anchor("center"),
         k.pos(0, 0),
-        k.rotate(0)
+        k.rotate(0),
+        k.color(255, 255, 255)
     ])
 
     const { front, back, state: handState } = createHands(k, player, vis)
+
+    function applyTint(color: Color) {
+        vis.color = color
+        front.color = color
+        back.color = color
+    }
 
     function face() {
         applyFace(k, player, vis, state.facing, state)
@@ -97,11 +108,15 @@ export function createPlayer(
         state.appliedFace = 0
 
         face()
-        player.angle = 0
+        if (!remote) player.angle = 0
     })
 
     k.onUpdate(() => {
         const dt = k.dt()
+
+        if (remote) {
+            updateHands(k, front, back, handState, player.angle, dt, state.facing, vis)
+        }
 
         if (state.dead) return
         if (state.hp <= 0) {
@@ -222,5 +237,5 @@ export function createPlayer(
         updateHands(k, front, back, handState, player.angle, dt, state.facing, vis)
     })
 
-    return { player, vis, state }
+    return { player, vis, front, back, state, applyTint, face }
 }

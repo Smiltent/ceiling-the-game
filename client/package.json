@@ -9,6 +9,7 @@
 		"zip": "deno run build && mkdir -p dist && zip -r dist/game.zip dist -x \"**/.DS_Store\""
 	},
 	"dependencies": {
+		"@colyseus/sdk": "^0.18.2",
 		"kaplay": "^3001.0.19"
 	},
 	"devDependencies": {

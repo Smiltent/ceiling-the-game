@@ -15,6 +15,7 @@ function create(k: KAPLAYCtx, parent: GameObj, sprite: string, z: number) {
         k.pos(HAND_TACK_X, HAND_TACK_Y),
         k.rotate(0),
         k.z(z),
+        k.color(255, 255, 255),
         "hand"
     ])
 }

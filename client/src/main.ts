@@ -3,9 +3,10 @@ import { WIDTH, HEIGHT, DEAD_CAM_SCALE, DEAD_CAM_TIME } from "./util/config"
 import { loadVig } from "./util/shaders/vignette"
 import { createPlayer } from "./player/create"
 import addDeathFrame from "./util/deathFrame"
-import { loadSnowy1 } from "./scenes/snowy/1"
-import kaplay from "kaplay"
 import { loadLobby } from "./scenes/lobby"
+import { joinGame, NetPlayer, watchPlayers } from "./net/colyseus"
+import kaplay from "kaplay"
+import { Callbacks } from "@colyseus/sdk"
 
 const k = kaplay({
     width: WIDTH,
@@ -64,13 +65,97 @@ k.onUpdate(() => {
     if (zoomT >= 1) zooming = false
 })
 
-createPlayer(k, {
+type Puppet = {
+    player: ReturnType<typeof createPlayer>["player"]
+    state: ReturnType<typeof createPlayer>["state"]
+    applyTint: ReturnType<typeof createPlayer>["applyTint"]
+    face: ReturnType<typeof createPlayer>["face"]
+    destroy: () => void
+}
+
+const remotes = new Map<string, Puppet>()
+const local = createPlayer(k, {
     onDeath: () => {
         zooming = true
         zoomT = 0
         camScale = 1
-
         k.setCamScale(1)
         addDeathFrame(k, deathBars)
     }
 })
+
+function spawnRemote(sessionId: string, net: NetPlayer) {
+    const remote = createPlayer(k, {
+        remote: true,
+        pos: { x: net.x, y: net.y },
+        getInput: () => ({ left: false, right: false, up: false })
+    })
+
+    remote.applyTint(k.rgb(net.tintR, net.tintG, net.tintB))
+    remote.state.facing = net.facing < 0 ? -1 : 1
+    remote.player.angle = net.angle
+    remote.face()
+
+    remotes.set(sessionId, {
+        player: remote.player,
+        state: remote.state,
+        applyTint: remote.applyTint,
+        face: remote.face,
+        destroy: () => remote.player.destroy()
+    })
+}
+
+joinGame()
+    .then((room) => {
+        watchPlayers(room, {
+            onAdd: (net, sessionId) => {
+                const tint = k.rgb(net.tintR, net.tintG, net.tintB)
+                if (sessionId === room.sessionId) {
+                    local.applyTint(tint)
+                    return
+                }
+                
+                spawnRemote(sessionId, net)
+
+                const callbacks = Callbacks.get(room)
+                callbacks.listen(net, "x", (x) => {
+                    const r = remotes.get(sessionId)
+                    if (r) r.player.pos.x = x
+                })
+                
+                callbacks.listen(net, "y", (y) => {
+                    const r = remotes.get(sessionId)
+                    if (r) r.player.pos.y = y
+                })
+
+                callbacks.listen(net, "angle", (angle) => {
+                    const r = remotes.get(sessionId)
+                    if (r) r.player.angle = angle
+                })
+
+                callbacks.listen(net, "facing", (facing) => {
+                    const r = remotes.get(sessionId)
+                    if (!r) return
+                    r.state.facing = facing < 0 ? -1 : 1
+                    r.face()
+                })
+            },
+            onRemove: (net, sessionId) => {
+                remotes.get(sessionId)?.destroy()
+                remotes.delete(sessionId)
+            }
+        })
+
+        k.onUpdate(() => {
+            if (local.state.dead) return
+            room.send("move", {
+                x: local.player.pos.x,
+                y: local.player.pos.y,
+                angle: local.player.angle,
+                facing: local.state.facing
+            })
+        })
+    })
+    .catch((err) => {
+        console.error("failed to join")
+    })
