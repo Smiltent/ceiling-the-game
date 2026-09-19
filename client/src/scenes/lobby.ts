@@ -16,12 +16,15 @@ function box(cols: number, rows: number) {
             const floor = row === rows - 1
             const wall = col === 0 || col === cols - 1
             const door =
-            col === cols - 1 &&
-            row >= rows - 1 - DOOR_H &&
-            row < rows - 1
+                col === cols - 1 &&
+                row >= rows - 1 - DOOR_H &&
+                row < rows - 1
 
-            if (door) map.push(_)
-            map.push(floor || wall ? a : _)
+            if (door) {
+                map.push(_)
+            } else {
+                map.push(floor || wall ? a : _)
+            }
         }
     }
 
