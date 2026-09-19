@@ -1,31 +1,22 @@
 
-import kaplay from "kaplay"
-import opaqueHull from "./util/opaqueHull"
+import { FALLBACK_REST_ANGL, MAX_UP_VEL, FLIP_SPIN, MAX_SPEED, FRICTION, ACCEL, AIR_ACCEL, WEIGHT_PULL, ANG_DAMP, LEAN_RATE, FALL_LEAN, FALL_LEAN_RATE, MOVE_LEAN } from "./util/config"
 import opaqueBtmWeight from "./util/opaqueBtmWeight"
+import opaqueHull from "./util/opaqueHull"
+import kaplay from "kaplay"
 
-const k = kaplay()
+const k = kaplay({
+    width: 1920,
+    height: 1080,
+    letterbox: true,
+    stretch: true,
+    background: [100, 100, 100],
+    crisp: true
+})
+
 k.loadRoot("./") // itch.io publishing
 
 k.loadSprite("ceiling", "sprites/ceiling.png")
-k.setGravity(1000)
-
-// CONFIG
-const MAX_SPEED = 500
-const ACCEL = 1500
-const FRICTION = 1200
-const AIR_ACCEL = 1800
-const FLIP_SPIN = 820
-const JUMP_FORCE = 1200
-const MAX_UP_VEL = 650
-const WEIGHT_PULL = 28
-const ANG_DAMP = 10
-const FALLBACK_REST_ANGL = -10.54
-
-
-const MOVE_LEAN = 16
-const FALL_LEAN = 22
-const LEAN_RATE = 22
-const FALL_LEAN_RATE = 3.5
+k.setGravity(850)
 
 let bottom = { mass: 0, comX: 0, comY: 0 }
 let baseHull: [number, number][] = []
@@ -41,7 +32,7 @@ let flipping = false
 let flipTravel = 0
 
 const player = k.add([
-    k.pos(120, 80),
+    k.pos(1280 / 2, -120),
     k.anchor("center"),
     k.rotate(0),
     k.area({
@@ -84,7 +75,7 @@ function tilt(deg: number) {
 
 function posVis(face: number) {
     vis.flipX = face === -1
-    vis.angle = (restAngle + lean) * face
+    vis.angle = restAngle * face
     vis.pos = k.vec2(0, tilt(restAngle + lean))
 }
 
@@ -130,7 +121,7 @@ k.onUpdate(() => {
     if (k.isKeyDown("up") && player.isGrounded() && !flipping) {
         const keepX = player.vel.x
 
-        player.jump(JUMP_FORCE)
+        player.jump()
         player.vel.x = keepX
     }
 
@@ -181,12 +172,11 @@ k.onUpdate(() => {
             flipTravel = 0
             angVel = 0
 
+            lean = 0
             player.angle = 0
-            // player.flipX = facing === -1
             applyFace(facing)
         }
     } else {
-        player.angle = 0
         angVel = 0
 
         let leanTarg = 0
@@ -206,6 +196,7 @@ k.onUpdate(() => {
         const t = Math.min(1, leanRate * dt)
         lean += (leanTarg - lean) * t
 
+        player.angle = lean * facing
         applyFace(facing)
     } 
 })
